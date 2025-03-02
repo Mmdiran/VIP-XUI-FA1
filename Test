@@ -553,7 +553,6 @@ if [[ $# > 0 ]]; then
         ;;
     "status")
         check_install 0 && status 0
-        ;;
     "enable")
         check_install 0 && enable 0
         ;;
