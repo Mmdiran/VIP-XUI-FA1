@@ -563,7 +563,7 @@ if [[ $# > 0 ]]; then
         check_install 0 && update 0
         ;;
     "install
-        ;;
+
         check_install 0 && uninstall 0
         ;;
     *) show_usage ;;
