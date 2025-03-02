@@ -562,8 +562,8 @@ if [[ $# > 0 ]]; then
     "update")
         check_install 0 && update 0
         ;;
-    "install")
-        check_uninstall 0 && install 0
+    "install
+check_uninstall 0 && install 0
         ;;
         check_install 0 && uninstall 0
         ;;
