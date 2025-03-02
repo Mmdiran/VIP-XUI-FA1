@@ -566,7 +566,7 @@ if [[ $# > 0 ]]; then
     "install")
         check_uninstall 0 && install 0
         ;;
-    "uninstall")
+    "حذف")
         check_install 0 && uninstall 0
         ;;
     *) show_usage ;;
