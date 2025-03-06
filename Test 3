@@ -1,0 +1,576 @@
+#!/bin/bash
+
+red='\033[0;31m'
+green='\033[0;32m'
+yellow='\033[0;33m'
+plain='\033[0m'
+
+#Add some basic function here
+function LOGD() {
+    echo -e "${yellow}[DEG] $* ${plain}"
+}
+
+function LOGE() {
+    echo -e "${red}[ERR] $* ${plain}"
+}
+
+function LOGI() {
+    echo -e "${green}[INF] $* ${plain}"
+}
+
+cd ~
+uname_output=$(uname -a)
+enable_str="nohup \.\/x-ui run"
+
+# check os
+if echo "$uname_output" | grep -Eqi "freebsd"; then
+    release="freebsd"
+else
+    echo -e "${red}وœھو£€وµ‹هˆ°ç³»ç»ںç‰ˆوœ¬ï¼Œè¯·èپ”ç³»è„ڑوœ¬ن½œè€…ï¼پ${plain}\n" && exit 1
+fi
+
+arch="none"
+
+if echo "$uname_output" | grep -Eqi 'x86_64|amd64|x64'; then
+    arch="amd64"
+elif echo "$uname_output" | grep -Eqi 'aarch64|arm64'; then
+    arch="arm64"
+else
+    arch="amd64"
+    echo -e "${red}و£€وµ‹و‍¶و‍„ه¤±è´¥ï¼Œن½؟ç”¨é»کè®¤و‍¶و‍„: ${arch}${plain}"
+fi
+
+echo "و‍¶و‍„: ${arch}"
+
+confirm() {
+    if [[ $# > 1 ]]; then
+        echo && read -p "$1 [é»کè®¤$2]: " temp
+        if [[ x"${temp}" == x"" ]]; then
+            temp=$2
+        fi
+    else
+        read -p "$1 [y/n]: " temp
+    fi
+    if [[ x"${temp}" == x"y" || x"${temp}" == x"Y" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+confirm_restart() {
+    confirm "وک¯هگ¦é‡چهگ¯é‌¢و‌؟ï¼Œé‡چهگ¯é‌¢و‌؟ن¹ںن¼ڑé‡چهگ¯ xray" "y"
+    if [[ $? == 0 ]]; then
+        restart
+    else
+        show_menu
+    fi
+}
+
+before_show_menu() {
+    echo && echo -n -e "${yellow}وŒ‰ه›‍è½¦è؟”ه›‍ن¸»èڈœهچ•: ${plain}" && read temp
+    show_menu
+}
+
+update() {
+    confirm "وœ¬هٹںèƒ½ن¼ڑه¼؛هˆ¶é‡چè£…ه½“ه‰چوœ€و–°ç‰ˆï¼Œو•°وچ®ن¸چن¼ڑن¸¢ه¤±ï¼Œوک¯هگ¦ç»§ç»­?" "n"
+    if [[ $? != 0 ]]; then
+        LOGE "ه·²هڈ–و¶ˆ"
+        if [[ $# == 0 ]]; then
+            before_show_menu
+        fi
+        return 0
+    fi
+    cd ~
+    wget -N --no-check-certificate -O x-ui-install.sh /path/to/local/x-ui-install.sh
+    chmod +x x-ui-install.sh
+    ./x-ui-install.sh
+    if [[ $? == 0 ]]; then
+        LOGI "و›´و–°ه®Œوˆگï¼Œه·²è‡ھهٹ¨é‡چهگ¯é‌¢و‌؟ "
+        exit 0
+    fi
+}
+
+stop_x-ui() {
+    # è®¾ç½®ن½ وƒ³è¦پو‌€و­»çڑ„nohupè؟›ç¨‹çڑ„ه‘½ن»¤هگچ
+    xui_com="./x-ui run"
+    xray_com="bin/xray-$release-$arch -c bin/config.json"
+ 
+    # ن½؟ç”¨pgrepوں¥و‰¾è؟›ç¨‹ID
+    PID=$(pgrep -f "$xray_com")
+ 
+    # و£€وں¥وک¯هگ¦و‰¾هˆ°ن؛†è؟›ç¨‹
+    if [ ! -z "$PID" ]; then
+        # و‰¾هˆ°ن؛†è؟›ç¨‹ï¼Œو‌€و­»ه®ƒ
+        kill $PID
+    
+        # هڈ¯é€‰ï¼ڑو£€وں¥è؟›ç¨‹وک¯هگ¦ه·²ç»ڈè¢«و‌€و­»
+        if kill -0 $PID > /dev/null 2>&1; then
+            kill -9 $PID
+        fi
+    fi
+        # ن½؟ç”¨pgrepوں¥و‰¾è؟›ç¨‹ID
+    PID=$(pgrep -f "$xui_com")
+ 
+    # و£€وں¥وک¯هگ¦و‰¾هˆ°ن؛†è؟›ç¨‹
+    if [ ! -z "$PID" ]; then
+        # و‰¾هˆ°ن؛†è؟›ç¨‹ï¼Œو‌€و­»ه®ƒ
+        kill $PID
+    
+        # هڈ¯é€‰ï¼ڑو£€وں¥è؟›ç¨‹وک¯هگ¦ه·²ç»ڈè¢«و‌€و­»
+        if kill -0 $PID > /dev/null 2>&1; then
+            kill -9 $PID
+        fi
+    fi
+
+}
+
+install() {
+    cd ~
+    wget -N --no-check-certificate -O x-ui-install.sh /path/to/local/x-ui-install.sh
+    chmod +x x-ui-install.sh
+    ./x-ui-install.sh
+    if [[ $? == 0 ]]; then
+        if [[ $# == 0 ]]; then
+            start
+        else
+            start 0
+        fi
+    fi
+}
+
+uninstall() {
+    confirm "ç،®ه®ڑè¦پهچ¸è½½é‌¢و‌؟هگ—,xray ن¹ںن¼ڑهچ¸è½½?" "n"
+    if [[ $? != 0 ]]; then
+        if [[ $# == 0 ]]; then
+            show_menu
+        fi
+        return 0
+    fi
+    stop_x-ui
+    crontab -l > x-ui.cron
+    sed -i "" "/x-ui.log/d" x-ui.cron
+    crontab x-ui.cron
+    rm x-ui.cron
+    cd ~
+    rm -rf ~/x-ui/
+
+    echo ""
+    echo -e "هچ¸è½½وˆگهٹںï¼Œه¦‚و‍œن½ وƒ³هˆ é™¤و­¤è„ڑوœ¬ï¼Œهˆ™é€€ه‡؛è„ڑوœ¬هگژè؟گè،Œ ${green}rm ~/x-ui.sh -f${plain} è؟›è،Œهˆ é™¤"
+    echo ""
+
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+reset_user() {
+    confirm "ç،®ه®ڑè¦په°†ç”¨وˆ·هگچه’Œه¯†ç پé‡چç½®ن¸؛ admin هگ—" "n"
+    if [[ $? != 0 ]]; then
+        if [[ $# == 0 ]]; then
+            show_menu
+        fi
+        return 0
+    fi
+    ~/x-ui/x-ui setting -username admin -password admin
+    echo -e "ç”¨وˆ·هگچه’Œه¯†ç په·²é‡چç½®ن¸؛ ${green}admin${plain}ï¼Œçژ°هœ¨è¯·é‡چهگ¯é‌¢و‌؟"
+    confirm_restart
+}
+
+reset_config() {
+    confirm "ç،®ه®ڑè¦پé‡چç½®و‰€وœ‰é‌¢و‌؟è®¾ç½®هگ—ï¼Œè´¦هڈ·و•°وچ®ن¸چن¼ڑن¸¢ه¤±ï¼Œç”¨وˆ·هگچه’Œه¯†ç پن¸چن¼ڑو”¹هڈک" "n"
+    if [[ $? != 0 ]]; then
+        if [[ $# == 0 ]]; then
+            show_menu
+        fi
+        return 0
+    fi
+    ~/x-ui/x-ui setting -reset
+    echo -e "و‰€وœ‰é‌¢و‌؟è®¾ç½®ه·²é‡چç½®ن¸؛é»کè®¤ه€¼ï¼Œçژ°هœ¨è¯·é‡چهگ¯é‌¢و‌؟ï¼Œه¹¶ن½؟ç”¨é»کè®¤çڑ„ ${green}54321${plain} ç«¯هڈ£è®؟é—®é‌¢و‌؟"
+    confirm_restart
+}
+
+check_config() {
+    info=$(~/x-ui/x-ui setting -show true)
+    if [[ $? != 0 ]]; then
+        LOGE "get current settings error,please check logs"
+        show_menu
+    fi
+    LOGI "${info}"
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+set_port() {
+    echo && echo -n -e "è¾“ه…¥ç«¯هڈ£هڈ·[1-65535]: " && read port
+    if [[ -z "${port}" ]]; then
+        LOGD "ه·²هڈ–و¶ˆ"
+        before_show_menu
+    else
+        ~/x-ui/x-ui setting -port ${port}
+        echo -e "è®¾ç½®é‌¢و‌؟è®؟é—®ç«¯هڈ£ه®Œو¯•ï¼Œçژ°هœ¨è¯·é‡چهگ¯é‌¢و‌؟ï¼Œه¹¶ن½؟ç”¨و–°è®¾ç½®çڑ„ç«¯هڈ£ ${green}${port}${plain} è®؟é—®é‌¢و‌؟"
+        confirm_restart
+    fi
+}
+
+set_traffic_port() {
+    echo && echo -n -e "è¾“ه…¥وµپé‡ڈç›‘وµ‹ç«¯هڈ£هڈ·[1-65535]: " && read trafficport
+    if [[ -z "${trafficport}" ]]; then
+        LOGD "ه·²هڈ–و¶ˆ"
+        before_show_menu
+    else
+        ~/x-ui/x-ui setting -trafficport ${trafficport}
+        echo -e "è®¾ç½®وµپé‡ڈç›‘وµ‹ç«¯هڈ£ه®Œو¯•ï¼Œçژ°هœ¨è¯·é‡چهگ¯é‌¢و‌؟ï¼Œه¹¶ن½؟ç”¨و–°è®¾ç½®çڑ„ç«¯هڈ£ ${green}${trafficport}${plain} è®؟é—®é‌¢و‌؟"
+        confirm_restart
+    fi
+}
+
+
+start() {
+    check_status
+    if [[ $? == 0 ]]; then
+        echo ""
+        LOGI "é‌¢و‌؟ه·²è؟گè،Œï¼Œو— éœ€ه†چو¬،هگ¯هٹ¨ï¼Œه¦‚éœ€é‡چهگ¯è¯·é€‰و‹©é‡چهگ¯"
+    else
+        cd ~/x-ui
+        nohup ./x-ui run > ./x-ui.log 2>&1 &
+        sleep 2
+        check_status
+        if [[ $? == 0 ]]; then
+            LOGI "x-ui هگ¯هٹ¨وˆگهٹں"
+        else
+            LOGE "é‌¢و‌؟هگ¯هٹ¨ه¤±è´¥ï¼Œهڈ¯èƒ½وک¯ه› ن¸؛هگ¯هٹ¨و—¶é—´è¶…è؟‡ن؛†ن¸¤ç§’ï¼Œè¯·ç¨چهگژوں¥çœ‹و—¥ه؟—ن؟،وپ¯"
+        fi
+    fi
+
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+stop() {
+    check_status
+    if [[ $? == 1 ]]; then
+        echo ""
+        LOGI "é‌¢و‌؟ه·²هپœو­¢ï¼Œو— éœ€ه†چو¬،هپœو­¢"
+    else
+        stop_x-ui
+        sleep 2
+        check_status
+        if [[ $? == 1 ]]; then
+            LOGI "x-ui ن¸ژ xray هپœو­¢وˆگهٹں"
+        else
+            LOGE "é‌¢و‌؟هپœو­¢ه¤±è´¥ï¼Œهڈ¯èƒ½وک¯ه› ن¸؛هپœو­¢و—¶é—´è¶…è؟‡ن؛†ن¸¤ç§’ï¼Œè¯·ç¨چهگژوں¥çœ‹و—¥ه؟—ن؟،وپ¯"
+        fi
+    fi
+
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+restart() {
+    stop 0
+    start 0
+    sleep 2
+    check_status
+    if [[ $? == 0 ]]; then
+        LOGI "x-ui ن¸ژ xray é‡چهگ¯وˆگهٹں"
+    else
+        LOGE "é‌¢و‌؟é‡چهگ¯ه¤±è´¥ï¼Œهڈ¯èƒ½وک¯ه› ن¸؛هگ¯هٹ¨و—¶é—´è¶…è؟‡ن؛†ن¸¤ç§’ï¼Œè¯·ç¨چهگژوں¥çœ‹و—¥ه؟—ن؟،وپ¯"
+    fi
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+status() {
+    COMMAND_NAME="./x-ui run"
+    PID=$(pgrep -f "$COMMAND_NAME")
+ 
+    # و£€وں¥وک¯هگ¦و‰¾هˆ°ن؛†è؟›ç¨‹
+    if [ ! -z "$PID" ]; then
+        LOGI "x-ui è؟گè،Œن¸­"
+    else
+        LOGI "x-ui و²،وœ‰è؟گè،Œ"
+    fi
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+enable() {
+    crontab -l > x-ui.cron
+    sed -i "" "/$enable_str/d" x-ui.cron
+    echo "@reboot cd $cur_dir/x-ui && nohup ./x-ui run > ./x-ui.log 2>&1 &" >> x-ui.cron
+    crontab x-ui.cron
+    rm x-ui.cron
+    if [[ $? == 0 ]]; then
+        LOGI "x-ui è®¾ç½®ه¼€وœ؛è‡ھهگ¯وˆگهٹں"
+    else
+        LOGE "x-ui è®¾ç½®ه¼€وœ؛è‡ھهگ¯ه¤±è´¥"
+    fi
+
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+disable() {
+    crontab -l > x-ui.cron
+    sed -i "" "/$enable_str/d" x-ui.cron
+    crontab x-ui.cron
+    rm x-ui.cron
+    if [[ $? == 0 ]]; then
+        LOGI "x-ui هڈ–و¶ˆه¼€وœ؛è‡ھهگ¯وˆگهٹں"
+    else
+        LOGE "x-ui هڈ–و¶ˆه¼€وœ؛è‡ھهگ¯ه¤±è´¥"
+    fi
+
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+update_shell() {
+    wget -O ~/x-ui.sh -N --no-check-certificate /path/to/local/x-ui.sh
+    if [[ $? != 0 ]]; then
+        echo ""
+        LOGE "ن¸‹è½½è„ڑوœ¬ه¤±è´¥ï¼Œè¯·و£€وں¥وœ¬وœ؛èƒ½هگ¦è؟‍وژ¥ Github"
+        before_show_menu
+    else
+        chmod +x ~/x-ui
+        LOGI "هچ‡ç؛§è„ڑوœ¬وˆگهٹںï¼Œè¯·é‡چو–°è؟گè،Œè„ڑوœ¬" && exit 0
+    fi
+}
+
+# 0: running, 1: not running, 2: not installed
+check_status() {
+    if [[ ! -f ~/x-ui/x-ui ]]; then
+        return 2
+    fi
+    COMMAND_NAME="./x-ui run"
+    PID=$(pgrep -f "$COMMAND_NAME")
+ 
+    # و£€وں¥وک¯هگ¦و‰¾هˆ°ن؛†è؟›ç¨‹
+    if [ ! -z "$PID" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+check_enabled() {
+    cron_str=$(crontab -l)
+ 
+    # و£€وں¥grepçڑ„é€€ه‡؛çٹ¶و€پç پ
+    if echo "$cron_str" | grep -Eqi "$enable_str"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+check_uninstall() {
+    check_status
+    if [[ $? != 2 ]]; then
+        echo ""
+        LOGE "é‌¢و‌؟ه·²ه®‰è£…ï¼Œè¯·ن¸چè¦پé‡چه¤چه®‰è£…"
+        if [[ $# == 0 ]]; then
+            before_show_menu
+        fi
+        return 1
+    else
+        return 0
+    fi
+}
+
+check_install() {
+    check_status
+    if [[ $? == 2 ]]; then
+        echo ""
+        LOGE "è¯·ه…ˆه®‰è£…é‌¢و‌؟"
+        if [[ $# == 0 ]]; then
+            before_show_menu
+        fi
+        return 1
+    else
+        return 0
+    fi
+}
+
+show_status() {
+    check_status
+    case $? in
+    0)
+        echo -e "é‌¢و‌؟çٹ¶و€پ: ${green}ه·²è؟گè،Œ${plain}"
+        show_enable_status
+        ;;
+    1)
+        echo -e "é‌¢و‌؟çٹ¶و€پ: ${yellow}وœھè؟گè،Œ${plain}"
+        show_enable_status
+        ;;
+    2)
+        echo -e "é‌¢و‌؟çٹ¶و€پ: ${red}وœھه®‰è£…${plain}"
+        ;;
+    esac
+    show_xray_status
+}
+
+show_enable_status() {
+    check_enabled
+    if [[ $? == 0 ]]; then
+        echo -e "وک¯هگ¦ه¼€وœ؛è‡ھهگ¯: ${green}وک¯${plain}"
+    else
+        echo -e "وک¯هگ¦ه¼€وœ؛è‡ھهگ¯: ${red}هگ¦${plain}"
+    fi
+}
+
+check_xray_status() {
+    count=$(ps -aux | grep "xray-${release}" | grep -v "grep" | wc -l)
+    if [[ count -ne 0 ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+show_xray_status() {
+    check_xray_status
+    if [[ $? == 0 ]]; then
+        echo -e "xray çٹ¶و€پ: ${green}è؟گè،Œ${plain}"
+    else
+        echo -e "xray çٹ¶و€پ: ${red}وœھè؟گè،Œ${plain}"
+    fi
+}
+
+show_usage() {
+    echo "x-ui ç®،çگ†è„ڑوœ¬ن½؟ç”¨و–¹و³•: "
+    echo "------------------------------------------"
+    echo "x-ui              - وک¾ç¤؛ç®،çگ†èڈœهچ• (هٹںèƒ½و›´ه¤ڑ)"
+    echo "x-ui start        - هگ¯هٹ¨ x-ui é‌¢و‌؟"
+    echo "x-ui stop         - هپœو­¢ x-ui é‌¢و‌؟"
+    echo "x-ui restart      - é‡چهگ¯ x-ui é‌¢و‌؟"
+    echo "x-ui status       - وں¥çœ‹ x-ui çٹ¶و€پ"
+    echo "x-ui enable       - è®¾ç½® x-ui ه¼€وœ؛è‡ھهگ¯"
+    echo "x-ui disable      - هڈ–و¶ˆ x-ui ه¼€وœ؛è‡ھهگ¯"
+    echo "x-ui update       - و›´و–° x-ui é‌¢و‌؟"
+    echo "x-ui install      - ه®‰è£… x-ui é‌¢و‌؟"
+    echo "x-ui uninstall    - هچ¸è½½ x-ui é‌¢و‌؟"
+    echo "------------------------------------------"
+}
+
+show_menu() {
+    echo -e "
+  ${green}x-ui é‌¢و‌؟ç®،çگ†è„ڑوœ¬${plain}
+  ${green}0.${plain} é€€ه‡؛è„ڑوœ¬
+â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+  ${green}1.${plain} ظ†طµط¨ x-ui
+  ${green}2.${plain} ط¨ط±ظˆط² x-ui
+  ${green}3.${plain} ط­ط°ظپ x-ui
+â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+  ${green}4.${plain} é‡چç½®ç”¨وˆ·هگچه¯†ç پ
+  ${green}5.${plain} é‡چç½®é‌¢و‌؟è®¾ç½®
+  ${green}6.${plain} è®¾ç½®é‌¢و‌؟è®؟é—®ç«¯هڈ£
+  ${green}7.${plain} وں¥çœ‹ه½“ه‰چé‌¢و‌؟è®¾ç½®
+â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+  ${green}8.${plain} هگ¯هٹ¨ x-ui
+  ${green}9.${plain} هپœو­¢ x-ui
+  ${green}10.${plain} é‡چهگ¯ x-ui
+  ${green}11.${plain} وں¥çœ‹ x-ui çٹ¶و€پ
+  ${green}12.${plain} è®¾ç½®وµپé‡ڈç›‘وµ‹ç«¯هڈ£
+â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+  ${green}13.${plain} è®¾ç½® x-ui ه¼€وœ؛è‡ھهگ¯
+  ${green}14.${plain} هڈ–و¶ˆ x-ui ه¼€وœ؛è‡ھهگ¯
+â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+ "
+    show_status
+    echo && read -p "è¯·è¾“ه…¥é€‰و‹© [0-14]: " num
+
+    case "${num}" in
+    0)
+        exit 0
+        ;;
+    1)
+        check_uninstall && install
+        ;;
+    2)
+        check_install && update
+        ;;
+    3)
+        check_install && uninstall
+        ;;
+    4)
+        check_install && reset_user
+        ;;
+    5)
+        check_install && reset_config
+        ;;
+    6)
+        check_install && set_port
+        ;;
+    7)
+        check_install && check_config
+        ;;
+    8)
+        check_install && start
+        ;;
+    9)
+        check_install && stop
+        ;;
+    10)
+        check_install && restart
+        ;;
+    11)
+        check_install && status
+        ;;
+    12)
+        check_install && set_traffic_port
+        ;;
+    13)
+        check_install && enable
+        ;;
+    14)
+        check_install && disable
+        ;;
+    *)
+        LOGE "è¯·è¾“ه…¥و­£ç،®çڑ„و•°ه­— [0-14]"
+        ;;
+    esac
+}
+
+if [[ $# > 0 ]]; then
+    case $1 in
+    "start")
+        check_install 0 && start 0
+        ;;
+    "stop")
+        check_install 0 && stop 0
+        ;;
+    "restart")
+        check_install 0 && restart 0
+        ;;
+    "status")
+        check_install 0 && status 0
+        ;;
+    "enable")
+        check_install 0 && enable 0
+        ;;
+    "disable")
+        check_install 0 && disable 0
+        ;;
+    "update")
+        check_install 0 && update 0
+        ;;
+    "install")
+        check_uninstall 0 && install 0
+        ;;
+    "uninstall")
+        check_install 0 && uninstall 0
+        ;;
+    *) show_usage ;;
+    esac
+else
+    show_menu
+fi
