@@ -1,0 +1,170 @@
+#!/bin/bash
+
+red='\033[0;31m'
+green='\033[0;32m'
+yellow='\033[0;33m'
+plain='\033[0m'
+
+function LOGD() {
+    echo -e "${yellow}[DEG] $* ${plain}"
+}
+
+function LOGE() {
+    echo -e "${red}[ERR] $* ${plain}"
+}
+
+function LOGI() {
+    echo -e "${green}[INF] $* ${plain}"
+}
+
+cd ~
+uname_output=$(uname -a)
+enable_str="nohup \.\/x-ui run"
+
+if echo "$uname_output" | grep -Eqi "freebsd"; then
+    release="freebsd"
+else
+    echo -e "${red}System version not detected, please contact the script author!${plain}\n"
+    exit 1
+fi
+
+arch="none"
+
+if echo "$uname_output" | grep -Eqi 'x86_64|amd64|x64'; then
+    arch="amd64"
+elif echo "$uname_output" | grep -Eqi 'aarch64|arm64'; then
+    arch="arm64"
+else
+    arch="amd64"
+    echo -e "${red}Architecture detection failed, using default architecture: ${arch}${plain}"
+fi
+
+echo "Architecture: ${arch}"
+
+confirm() {
+    if [[ $# -gt 1 ]]; then
+        echo && read -p "$1 [Default $2]: " temp
+        temp=${temp:-$2}
+    else
+        read -p "$1 [y/n]: " temp
+    fi
+    [[ "$temp" == "y" || "$temp" == "Y" ]]
+}
+
+confirm_restart() {
+    confirm "Do you want to restart the panel? Restarting will also restart xray." "y" && restart || show_menu
+}
+
+before_show_menu() {
+    echo -n -e "${yellow}Press Enter to return to the main menu: ${plain}"
+    read
+    show_menu
+}
+
+update() {
+    confirm "This will reinstall the latest version without data loss. Continue?" "n" || { LOGE "Cancelled"; before_show_menu; return; }
+    cd ~
+    wget -N --no-check-certificate -O x-ui-install.sh https://raw.githubusercontent.com/parentalclash/x-ui-freebsd/main/install.sh
+    chmod +x x-ui-install.sh
+    ./x-ui-install.sh && LOGI "Update completed, panel restarted." && exit 0
+}
+
+stop_x-ui() {
+    pkill -f "bin/xray-$release-$arch -c bin/config.json"
+    pkill -f "./x-ui run"
+}
+
+install() {
+    cd ~
+    wget -N --no-check-certificate -O x-ui-install.sh https://raw.githubusercontent.com/parentalclash/x-ui-freebsd/main/install.sh
+    chmod +x x-ui-install.sh
+    ./x-ui-install.sh && start
+}
+
+uninstall() {
+    confirm "Uninstall the panel? xray will also be removed." "n" || { show_menu; return; }
+    stop_x-ui
+    crontab -l | grep -v "x-ui.log" | crontab -
+    rm -rf ~/x-ui/
+    echo -e "${green}Uninstallation successful. Run 'rm ~/x-ui.sh -f' to delete this script.${plain}"
+    before_show_menu
+}
+
+reset_user() {
+    confirm "Reset username/password to admin?" "n" || { show_menu; return; }
+    ~/x-ui/x-ui setting -username admin -password admin
+    LOGI "Username/password reset to admin. Restart the panel now."
+    confirm_restart
+}
+
+reset_config() {
+    confirm "Reset all panel settings (accounts remain unchanged)?" "n" || { show_menu; return; }
+    ~/x-ui/x-ui setting -reset
+    LOGI "Settings reset. Restart the panel and use port 54321."
+    confirm_restart
+}
+
+set_port() {
+    echo -n "Enter port number [1-65535]: "
+    read port
+    [[ -z "$port" ]] && { LOGD "Cancelled"; before_show_menu; return; }
+    ~/x-ui/x-ui setting -port "$port"
+    LOGI "Panel port set to ${green}$port${plain}. Restart required."
+    confirm_restart
+}
+
+set_traffic_port() {
+    echo -n "Enter traffic monitoring port [1-65535]: "
+    read trafficport
+    [[ -z "$trafficport" ]] && { LOGD "Cancelled"; before_show_menu; return; }
+    ~/x-ui/x-ui setting -trafficport "$trafficport"
+    LOGI "Traffic monitoring port set to ${green}$trafficport${plain}. Restart required."
+    confirm_restart
+}
+
+show_menu() {
+    echo -e "
+  ${green}x-ui Panel Management${plain}
+  ${green}0.${plain} Exit
+————————————————
+  ${green}1.${plain} Install x-ui
+  ${green}2.${plain} Update x-ui
+  ${green}3.${plain} Uninstall x-ui
+————————————————
+  ${green}4.${plain} Reset username/password
+  ${green}5.${plain} Reset panel settings
+  ${green}6.${plain} Set panel access port
+  ${green}7.${plain} View panel settings
+————————————————
+  ${green}8.${plain} Start x-ui
+  ${green}9.${plain} Stop x-ui
+  ${green}10.${plain} Restart x-ui
+  ${green}11.${plain} View x-ui status
+  ${green}12.${plain} Set traffic monitoring port
+————————————————
+  ${green}13.${plain} Enable auto-start
+  ${green}14.${plain} Disable auto-start
+————————————————
+ "
+    read -p "Enter your choice [0-14]: " num
+    case "$num" in
+        0) exit 0 ;;
+        1) install ;;
+        2) update ;;
+        3) uninstall ;;
+        4) reset_user ;;
+        5) reset_config ;;
+        6) set_port ;;
+        7) LOGI "Current settings: $(~/x-ui/x-ui setting -show)" ;;
+        8) ~/x-ui/x-ui start ;;
+        9) stop_x-ui ;;
+        10) stop_x-ui; ~/x-ui/x-ui start ;;
+        11) ~/x-ui/x-ui status ;;
+        12) set_traffic_port ;;
+        13) echo "@reboot ~/x-ui/x-ui start" | crontab - ;;
+        14) crontab -l | grep -v "@reboot ~/x-ui/x-ui start" | crontab - ;;
+        *) LOGE "Invalid input. Enter a number 0-14." ;;
+    esac
+}
+
+show_menu
